@@ -1,7 +1,7 @@
 import os 
 import argparse
 
-from douzero.evaluation.simulation import evaluate
+from douzero.evaluation.simulation_npc import evaluate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

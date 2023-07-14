@@ -103,11 +103,50 @@ class GameEnv(object):
     def step(self):
         return_info = {}
         return_info['pos'] = self.acting_player_position
+        return_info['self_cards'] = self.info_sets[self.acting_player_position].player_hand_cards
         return_info['can_play'] = len(self.info_sets[self.acting_player_position].legal_actions)>1 # cannot play -> legal_move = [[]]
+        if self.acting_player_position == "landlord_up":
+            return_info['teammate_cards'] = self.info_sets["landlord_down"].player_hand_cards
+        elif self.acting_player_position == "landlord_down":
+            return_info['teammate_cards'] = self.info_sets["landlord_up"].player_hand_cards
+        else:
+            return_info['teammate_cards'] = []
+        return_info['left_cards'] = self.info_sets[self.acting_player_position].num_cards_left_dict
+
 
         action = self.players[self.acting_player_position].act(
             self.game_infoset)
+        # print(self.game_infoset.player_position)
+        # print(self.info_sets[self.acting_player_position].player_position)
+        decision = 1
+        teammate = self.get_teammate()
+
+        if teammate is not None:
+            # print("pos", self.acting_player_position)
+            # print(self.info_sets[teammate].player_hand_cards)
+            infoset_teammate = self.get_infoset_teammate()
+            # print(self.acting_player_position, "-------")
+            # print(self.acting_player_position, self.game_infoset.player_hand_cards)
+            # print(teammate, infoset_teammate.player_hand_cards)
+            num_legal_actions = len(infoset_teammate.legal_actions)
+            # print(num_legal_actions)
+            teammate_advice = 1
+            if num_legal_actions<1:
+                teammate_advice = 1
+                # print(advice)
+            else:
+                teammate_advice, data = self.players[teammate].advice(self.get_infoset_teammate())
+                return_info['advicer_data'] = data
+                # print(data)
+
+            if teammate_advice == 0 and [] in self.game_infoset.legal_actions:
+                # print("check")
+                action = []
+            # print([] in self.game_infoset.legal_actions)
+            # print(action)
+
         return_info['act'] = action
+        
         # print(self.acting_player_position, self.game_infoset.legal_actions)
         assert action in self.game_infoset.legal_actions
 
@@ -269,6 +308,94 @@ class GameEnv(object):
             m.sort()
 
         return moves
+    
+    def get_legal_card_play_actions_teammate(self):
+        mg = MovesGener(
+            self.info_sets[self.get_teammate()].player_hand_cards)
+
+        action_sequence = self.card_play_action_seq
+
+        rival_move = []
+        if len(action_sequence) != 0:
+            if len(action_sequence[-1]) == 0:
+                rival_move = action_sequence[-2]
+            else:
+                rival_move = action_sequence[-1]
+
+        rival_type = md.get_move_type(rival_move)
+        rival_move_type = rival_type['type']
+        rival_move_len = rival_type.get('len', 1)
+        moves = list()
+
+        if rival_move_type == md.TYPE_0_PASS:
+            moves = mg.gen_moves()
+
+        elif rival_move_type == md.TYPE_1_SINGLE:
+            all_moves = mg.gen_type_1_single()
+            moves = ms.filter_type_1_single(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_2_PAIR:
+            all_moves = mg.gen_type_2_pair()
+            moves = ms.filter_type_2_pair(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_3_TRIPLE:
+            all_moves = mg.gen_type_3_triple()
+            moves = ms.filter_type_3_triple(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_4_BOMB:
+            all_moves = mg.gen_type_4_bomb() + mg.gen_type_5_king_bomb()
+            moves = ms.filter_type_4_bomb(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_5_KING_BOMB:
+            moves = []
+
+        elif rival_move_type == md.TYPE_6_3_1:
+            all_moves = mg.gen_type_6_3_1()
+            moves = ms.filter_type_6_3_1(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_7_3_2:
+            all_moves = mg.gen_type_7_3_2()
+            moves = ms.filter_type_7_3_2(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_8_SERIAL_SINGLE:
+            all_moves = mg.gen_type_8_serial_single(repeat_num=rival_move_len)
+            moves = ms.filter_type_8_serial_single(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_9_SERIAL_PAIR:
+            all_moves = mg.gen_type_9_serial_pair(repeat_num=rival_move_len)
+            moves = ms.filter_type_9_serial_pair(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_10_SERIAL_TRIPLE:
+            all_moves = mg.gen_type_10_serial_triple(repeat_num=rival_move_len)
+            moves = ms.filter_type_10_serial_triple(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_11_SERIAL_3_1:
+            all_moves = mg.gen_type_11_serial_3_1(repeat_num=rival_move_len)
+            moves = ms.filter_type_11_serial_3_1(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_12_SERIAL_3_2:
+            all_moves = mg.gen_type_12_serial_3_2(repeat_num=rival_move_len)
+            moves = ms.filter_type_12_serial_3_2(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_13_4_2:
+            all_moves = mg.gen_type_13_4_2()
+            moves = ms.filter_type_13_4_2(all_moves, rival_move)
+
+        elif rival_move_type == md.TYPE_14_4_22:
+            all_moves = mg.gen_type_14_4_22()
+            moves = ms.filter_type_14_4_22(all_moves, rival_move)
+
+        if rival_move_type not in [md.TYPE_0_PASS,
+                                   md.TYPE_4_BOMB, md.TYPE_5_KING_BOMB]:
+            moves = moves + mg.gen_type_4_bomb() + mg.gen_type_5_king_bomb()
+
+        if len(rival_move) != 0:  # rival_move is not 'pass'
+            moves = moves + [[]]
+
+        for m in moves:
+            m.sort()
+
+        return moves
 
     def reset(self):
         self.card_play_action_seq = []
@@ -341,6 +468,61 @@ class GameEnv(object):
              for pos in ['landlord', 'landlord_up', 'landlord_down']}
 
         return deepcopy(self.info_sets[self.acting_player_position])
+    
+    def get_infoset_teammate(self):
+        teammate = self.get_teammate()
+
+        # self.info_sets[
+        #     self.acting_player_position].last_pid = self.last_pid
+
+        self.info_sets[
+            teammate].legal_actions = \
+            self.get_legal_card_play_actions_teammate()
+
+        self.info_sets[
+            teammate].bomb_num = self.bomb_num
+
+        self.info_sets[
+            teammate].last_move = self.get_last_move()
+
+        self.info_sets[
+            teammate].last_two_moves = self.get_last_two_moves()
+
+        self.info_sets[
+            teammate].last_move_dict = self.last_move_dict
+
+        self.info_sets[teammate].num_cards_left_dict = \
+            {pos: len(self.info_sets[pos].player_hand_cards)
+             for pos in ['landlord', 'landlord_up', 'landlord_down']}
+
+        self.info_sets[teammate].other_hand_cards = []
+        for pos in ['landlord', 'landlord_up', 'landlord_down']:
+            if pos != teammate:
+                self.info_sets[
+                    teammate].other_hand_cards += \
+                    self.info_sets[pos].player_hand_cards
+
+        self.info_sets[teammate].played_cards = \
+            self.played_cards
+        self.info_sets[teammate].three_landlord_cards = \
+            self.three_landlord_cards
+        self.info_sets[teammate].card_play_action_seq = \
+            self.card_play_action_seq
+
+        self.info_sets[
+            teammate].all_handcards = \
+            {pos: self.info_sets[pos].player_hand_cards
+             for pos in ['landlord', 'landlord_up', 'landlord_down']}
+
+        return deepcopy(self.info_sets[teammate])
+    
+    def get_teammate(self):
+        teammate = None
+        if self.acting_player_position == "landlord_up":
+            teammate = "landlord_down"
+        elif self.acting_player_position == "landlord_down":
+            teammate = "landlord_up"
+        return teammate
 
 class InfoSet(object):
     """

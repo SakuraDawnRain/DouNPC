@@ -1,11 +1,12 @@
 import os 
 import argparse
+import json
 
-from douzero.evaluation.simulation_npc import train
+from douzero.evaluation.simulation_npc import record, evaluate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-                    'Dou Dizhu Evaluation')
+                    'Dou Dizhu Data Record')
     parser.add_argument('--landlord', type=str,
             default='baselines/douzero_ADP/landlord.ckpt')
     parser.add_argument('--landlord_up', type=str,
@@ -13,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--landlord_down', type=str,
             default='baselines/sl/landlord_down.ckpt')
     parser.add_argument('--eval_data', type=str,
-            default='eval_data.pkl')
+            default='record_data.pkl')
     parser.add_argument('--num_workers', type=int, default=5)
     parser.add_argument('--gpu_device', type=str, default='')
     args = parser.parse_args()
@@ -21,10 +22,16 @@ if __name__ == '__main__':
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_device
 
-    record_list = train(args.landlord,
+    record_list = record(args.landlord,
                         args.landlord_up,
                         args.landlord_down,
                         args.eval_data,
                         args.num_workers)
-    
-    print(record_list)
+
+    landlordtype = args.landlord.split('/')[1]
+    farmertype = args.landlord_up.split('/')[1]
+    # landlordtype_farmertype.json
+    path = os.path.join("data_adviser", landlordtype+"_"+farmertype+".json")
+    data = json.dumps(record_list, indent=1)
+    with open(path, 'w', newline='\n') as f:
+        f.write(data)

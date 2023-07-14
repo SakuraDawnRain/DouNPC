@@ -14,7 +14,7 @@ def load_card_play_models(card_play_model_path_dict):
             from .random_agent import RandomAgent
             players[position] = RandomAgent()
         else:
-            from .deep_agent import DeepAgent
+            from .deep_agent_npc import DeepAgent
             players[position] = DeepAgent(position, card_play_model_path_dict[position])
     return players
 
@@ -23,17 +23,22 @@ def mp_record(card_play_data_list, card_play_model_path_dict):
     players = load_card_play_models(card_play_model_path_dict)
 
     env = GameEnv(players)
-    game_record = []
+    game_record_list = []
+    
 
     for card_play_data in card_play_data_list:
         env.card_play_init(card_play_data)
+        game_record = {"record": []}
         while not env.game_over:
             info = env.step()
-            
-            game_record.append(info)
+            if info["pos"] != "landlord" and info["act"] == [] and len(info["advicer_data"])>0:
+                game_record["record"].append(info)
+        game_record["winner"] = env.get_winner()
         env.reset()
 
-    return game_record
+        game_record_list.append(game_record)
+        
+    return game_record_list
 
 
 
@@ -61,7 +66,7 @@ def data_allocation_per_worker(card_play_data_list, num_workers):
 
     return card_play_data_list_each_worker
 
-def train(landlord, landlord_up, landlord_down, eval_data, num_workers):
+def record(landlord, landlord_up, landlord_down, eval_data, num_workers):
     
     with open(eval_data, 'rb') as f:
         card_play_data_list = pickle.load(f)
@@ -77,10 +82,15 @@ def train(landlord, landlord_up, landlord_down, eval_data, num_workers):
 
     record_list = []
     for card_play_data in card_play_data_list_each_worker:
-        record = mp_record(card_play_data, card_play_model_path_dict)
-        if len(record)>0:
-            record_list.append(record)
-
+        sub_record_list = mp_record(card_play_data, card_play_model_path_dict)
+        # print(len(sub_record_list))
+        for record in sub_record_list:
+            if len(record["record"])>0:
+                record_list.append(record)
+            else:
+                # print("waste")
+                pass
+    print("length of record list:", len(record_list))
     return record_list
 
 def evaluate(landlord, landlord_up, landlord_down, eval_data, num_workers):

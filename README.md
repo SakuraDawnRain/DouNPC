@@ -1,6 +1,6 @@
 # DouNPC
 
-This work is based on DouZero. All extra files will end with "_npc".
+This work is based on DouZero. Most extra files will end with "_npc".
 
 ## Extra Files
 
@@ -8,7 +8,11 @@ test_npc.py
 
 train_npc.py
 
+record_npc.py
+
 douzero/env/game_npc.py
+
+douzero/env/env_npc.py
 
 douzero/evaluation/simulation_npc.py
 
