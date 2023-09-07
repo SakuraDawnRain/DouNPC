@@ -17,6 +17,7 @@ class FarmerLstmModelNPC(nn.Module):
         self.dense4 = nn.Linear(512, 512)
         self.dense5 = nn.Linear(512, 512)
         self.dense6 = nn.Linear(512, 1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, z, x, return_value=False, flags=None):
         lstm_out, (h_n, _) = self.lstm(z)
@@ -33,4 +34,4 @@ class FarmerLstmModelNPC(nn.Module):
         x = self.dense5(x)
         x = torch.relu(x)
         x = self.dense6(x)
-        return x
+        return self.sigmoid(x)

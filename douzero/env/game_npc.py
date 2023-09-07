@@ -113,7 +113,6 @@ class GameEnv(object):
             return_info['teammate_cards'] = []
         return_info['left_cards'] = self.info_sets[self.acting_player_position].num_cards_left_dict
 
-
         action = self.players[self.acting_player_position].act(
             self.game_infoset)
         # print(self.game_infoset.player_position)
@@ -136,8 +135,12 @@ class GameEnv(object):
                 # print(advice)
             else:
                 teammate_advice, data = self.players[teammate].advice(self.get_infoset_teammate())
+                # print(teammate_advice)
                 return_info['advicer_data'] = data
                 # print(data)
+            
+            num_self_card = self.info_sets[self.acting_player_position].num_cards_left_dict[self.acting_player_position]
+            num_teammate_card = self.info_sets[self.acting_player_position].num_cards_left_dict[teammate]
 
             if teammate_advice == 0 and [] in self.game_infoset.legal_actions:
                 # print("check")

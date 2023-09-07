@@ -11,8 +11,8 @@ def load_card_play_models(card_play_model_path_dict):
             from .rlcard_agent import RLCardAgent
             players[position] = RLCardAgent(position)
         elif card_play_model_path_dict[position] == 'random':
-            from .random_agent import RandomAgent
-            players[position] = RandomAgent()
+            from .random_agent_npc import RandomAgent
+            players[position] = RandomAgent(position)
         else:
             from .deep_agent_npc import DeepAgent
             players[position] = DeepAgent(position, card_play_model_path_dict[position])
